@@ -1,0 +1,5 @@
+*.jpg
+*.DS_Store
+inputs
+starter-anime-face-dataset (1).ipynb
+archive.zip
