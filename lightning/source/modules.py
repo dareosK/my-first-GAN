@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 import torch.nn as nn
 
 class Generator(nn.Module):
-    def __init__(self, latent_dim, featuremap_dim, output_dim=3, activation=None, final_activation=None):
+    def __init__(self, latent_dim, featuremap_dim, output_dim=3, activation=None, final_activation=None, **kwargs):
         """
         Standard Generator
         :parameter latent_dim: `int` latent dimension of the generator
@@ -42,5 +42,56 @@ class Generator(nn.Module):
             self.activation(inplace=True),
 
             nn.ConvTranspose2d(featuremap_dim * 2, featuremap_dim, kernel_size=4, stride=2, padding=1),
-            self.final_activation
+            self.final_activation()
         )
+
+    def forward(self, inputs):
+        out = self.net(inputs)
+        return out
+
+
+class Discriminator(nn.Module):
+    def __init__(self, featuremap_dim, input_dim=3, activation=None, final_activation=None, **kwargs):
+        """
+        Standard Discriminator
+        :parameter featuremap_dim: `int` dimension of the feature map, starts at featuremap_dim * 8 on the first layer
+        :parameter input_dim: `int` input dimension of the network
+        :parameter output_dim: `int` output dimension of the generator
+        :parameter activation: `torch.nn` activation function for the intermediate layers
+        :parameter final_activation: `torch.nn` activation of the final layer
+        """
+        super(Discriminator, self).__init__()
+        self.featuremap_dim = featuremap_dim
+        self.input_dim = input_dim
+        self.activation = activation
+        self.final_activation = final_activation
+
+        if activation is None:
+            self.activation = nn.LeakyReLU
+
+        if final_activation is None:
+            self.final_activation = nn.Sigmoid
+
+        self.mlp = nn.Sequential(
+            nn.Conv2d(input_dim, featuremap_dim, kernel_size=4, stride=2, padding=1, bias=False),
+            self.activation(),
+
+            nn.Conv2d(featuremap_dim, featuremap_dim * 2, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(featuremap_dim * 2),
+            self.activation(),
+
+            nn.Conv2d(featuremap_dim * 2, featuremap_dim * 4, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(featuremap_dim * 4),
+            self.activation(),
+
+            nn.Conv2d(featuremap_dim * 4, featuremap_dim * 8, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(featuremap_dim * 8),
+            self.activation(),
+
+            nn.Conv2d(featuremap_dim * 8, 1, kernel_size=4, stride=1, padding=0, bias=False),
+            self.final_activation()
+        )
+
+    def forward(self, inputs):
+        out = self.net(inputs)
+        return out
