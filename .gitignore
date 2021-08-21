@@ -1,4 +1,5 @@
 *.jpg
+__pycache__
 *.DS_Store
 inputs
 starter-anime-face-dataset (1).ipynb
