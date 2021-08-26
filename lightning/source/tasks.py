@@ -39,7 +39,7 @@ class GAN(LightningModule):
     def training_step(self, batch, batch_idx, optimizer_idx):
         images, _ = batch
 
-        # sample noise
+        # sample noise with shape (batchsize, latent_dim)
         z = torch.randn(images.shape[0], self.latent_dim)
 
         # train generator

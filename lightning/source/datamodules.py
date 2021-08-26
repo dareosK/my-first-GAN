@@ -9,7 +9,7 @@ import torchvision.utils as TorchVisionUtils
 
 
 class WaifuDatamodule(pl.LightningDataModule):
-    def __init__(self, folderpath, batch_size=128, image_size=64, transforms=None):
+    def __init__(self, folderpath='/Users/gregruyoga/G_PROJECTS/img_database/waifu', batch_size=128, image_size=64, transforms=None):
         """"
         :parameter folderpath: folder containing waifu images
         :parameter image_size: image size to centercrop + resize to
