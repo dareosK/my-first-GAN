@@ -45,6 +45,7 @@ class WaifuDatamodule(pl.LightningDataModule):
         Preview a batch of waifus
         """
         batch = self.get_batch()
+#         creates a grid of 8*8
         plt.figure(figsize=(8, 8))
         plt.axis("off")
         plt.title("Training Images")
