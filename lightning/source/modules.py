@@ -15,8 +15,6 @@ class Generator(nn.Module):
         self.latent_dim = latent_dim
         self.featuremap_dim = featuremap_dim
         self.output_dim = output_dim
-        self.block_activation = block_activation
-        self.final_activation = final_activation
 
         self.block_activation = block_activation if block_activation is not None else nn.LeakyReLU
         self.final_activation = final_activation if final_activation is not None else nn.Tanh
@@ -48,7 +46,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, featuremap_dim, input_dim=3, activation=None, final_activation=None, **kwargs):
+    def __init__(self, featuremap_dim, input_dim=3, block_activation=None, final_activation=None, **kwargs):
         """
         Standard Discriminator
         :parameter featuremap_dim: `int` dimension of the feature map, starts at featuremap_dim * 8 on the first layer
@@ -60,14 +58,8 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.featuremap_dim = featuremap_dim
         self.input_dim = input_dim
-        self.activation = activation
-        self.final_activation = final_activation
-
-        if activation is None:
-            self.activation = nn.LeakyReLU
-
-        if final_activation is None:
-            self.final_activation = nn.Sigmoid
+        self.block_activation = block_activation if block_activation is not None else nn.LeakyReLU
+        self.final_activation = final_activation if final_activation is not None else nn.Sigmoid
 
         self.mlp = nn.Sequential(
             nn.Conv2d(input_dim, featuremap_dim, kernel_size=4, stride=2, padding=1, bias=False),
