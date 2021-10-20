@@ -24,14 +24,17 @@ class WaifuDatamodule(pl.LightningDataModule):
                            T.CenterCrop(image_size),
                            T.ToTensor(),
                            T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-        self.dataset = TorchvisionDataset.ImageFolder(root=folderpath,
-                                                      transform=self.transforms)
         self.dataloader = None
 
     def setup(self, stage=None):
+        self.dataset = TorchvisionDataset.ImageFolder(root=self.folderpath,
+                                                      transform=self.transforms)
         self.dataloader = DataLoader(self.dataset, batch_size=self.batch_size,
-                                     shuffle=True, num_workers=4)
+                                     shuffle=False, num_workers=4)
+
+    def train_dataloader(self):
+        return DataLoader(self.dataset, batch_size=self.batch_size,
+                          shuffle=False, num_workers=4)
 
     def get_batch(self):
         if self.dataloader is None:
@@ -52,5 +55,3 @@ class WaifuDatamodule(pl.LightningDataModule):
         plt.imshow(np.transpose(TorchVisionUtils.make_grid(batch[0].to('cpu')[:64],
                                                            padding=2,
                                                            normalize=normalize).cpu(), (1, 2, 0)))
-
-
