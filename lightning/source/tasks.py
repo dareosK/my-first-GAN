@@ -6,27 +6,27 @@ import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
 import torch
+from neptune.new.types import File
 
 from lightning.source.datamodules import *
 from lightning.source.modules import *
 
 class GAN(LightningModule):
-    def __init__(self, discriminator, generator, batch_size, optimizer_kwargs, **kwargs):
+    def __init__(self, discriminator, generator, optimizer_kwargs, **kwargs):
         """
         :param discriminator: discriminator network
         :param generator: generator network
-        :param batch_size: batch size for the training
         :param optimizer_kwargs: `dict` keyword arguments for the optimizer
         """
         super().__init__()
         self.discriminator = discriminator
         self.generator = generator
-        self.batch_size = batch_size
         self.optimizer_kwargs = optimizer_kwargs
+        self.save_hyperparameters()
 
     def configure_optimizers(self):
-        lr = self.hparams.optimizer_kwargs['lr']
-        beta1 = self.hparams.optimizer_kwargs['beta1']
+        lr = self.optimizer_kwargs['lr']
+        beta1 = self.optimizer_kwargs['beta1']
         beta2 = self.hparams.optimizer_kwargs['beta2']
 
         opt_generator = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(beta1, beta2))
@@ -37,26 +37,27 @@ class GAN(LightningModule):
         return F.binary_cross_entropy(output, label)
 
     def training_step(self, batch, batch_idx, optimizer_idx):
-        images, _ = batch
+        images = batch[0]
 
         # sample noise with shape (batchsize, latent_dim)
-        z = torch.randn(images.shape[0], self.latent_dim)
+        z = torch.randn(images.shape[0], self.generator.latent_dim, 1, 1)
 
         # train generator
         if optimizer_idx == 0:
             # generate images
-            self.generated_images = self(z)
+            self.generated_images = self.forward(z)
 
             # log sampled images
-            sample_images = self.generated_images[:6]
-            grid = torchvision.utils.make_grid(sample_images)
-            self.logger.experiment.add_image('generated_images', grid, 0)
+            sample_image = np.transpose(TorchVisionUtils.make_grid(self.generated_images[0].to('cpu')[:64],
+                                                            padding=2,
+                                                            normalize=True).cpu(), (1, 2, 0))
+            self.logger.experiment['images'].upload(File.as_image(sample_image))
 
             # ground truth result (ie: all fake_label)
-            true_label = torch.ones(images.size(0), 1)
+            true_label = torch.ones(images.size(0))
 
             # adversarial loss is binary cross-entropy
-            g_loss = self.loss(self.discriminator(self(z)), true_label)
+            g_loss = self.loss(self.discriminator(self(z)).view(-1), true_label)
             self.log("generator_loss", g_loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
             output = dict(loss=g_loss)
             return output
@@ -64,19 +65,19 @@ class GAN(LightningModule):
         # train discriminator
         if optimizer_idx == 1:
             # Measure discriminator's ability to classify real from generated samples
-            true_label = torch.ones(images.size(0), 1)
+            true_label = torch.ones(images.size(0))
 
-            real_loss = self.loss(self.discriminator(images), true_label)
+            real_loss = self.loss(self.discriminator(images).view(-1), true_label)
 
             # Make fake_label label with size (batchsize, 1)
-            fake_label = torch.zeros(images.size(0), 1)
+            fake_label = torch.zeros(images.size(0))
 
             fake_loss = self.loss(
-                self.discriminator(self(z).detach()), fake_label)
+                self.discriminator(self.forward(z).detach()).view(-1), fake_label)
 
             # discriminator loss is the average of these
             d_loss = (real_loss + fake_loss) / 2
-            self.log("generator_loss", d_loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
+            self.log("discriminator_loss", d_loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
             output = dict(loss=d_loss)
             return output
 
