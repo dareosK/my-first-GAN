@@ -23,4 +23,3 @@ class FoolProofNeptuneLogger(NeptuneLogger):
             params.pop(k)
 
         self.run[parameters_key] = params
-
