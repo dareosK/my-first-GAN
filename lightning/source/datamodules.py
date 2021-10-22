@@ -30,7 +30,7 @@ class WaifuDatamodule(pl.LightningDataModule):
         self.dataset = TorchvisionDataset.ImageFolder(root=self.folderpath,
                                                       transform=self.transforms)
         self.dataloader = DataLoader(self.dataset, batch_size=self.batch_size,
-                                     shuffle=False, num_workers=4)
+                                     shuffle=False, num_workers=8)
 
     def train_dataloader(self):
         return DataLoader(self.dataset, batch_size=self.batch_size,

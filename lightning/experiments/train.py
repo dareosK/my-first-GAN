@@ -4,12 +4,9 @@ import hydra
 import importlib
 import torch
 import torch.nn as nn
-from torch.nn import Sigmoid, SELU, ReLU
 import neptune.new as neptune
 
 
-from pprint import pprint
-from collections import OrderedDict
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau, MultiStepLR
 from pytorch_lightning.callbacks import LearningRateMonitor, StochasticWeightAveraging
@@ -33,7 +30,7 @@ pl.seed_everything(69)  # the number of doom
 
 
 assert os.environ['NEPTUNE_API_TOKEN'], 'No Neptune API Token found. Please export your api token with `export NEPTUNE_API_TOKEN=<token>`.'
-config_path = "/Users/gregruyoga/DataspellProjects/waifu/waifu/lightning/source/config"
+config_path = "/home/ruyogagp/gan/waifu/lightning/source/config"
 
 def train(FLAGS):
 
@@ -45,16 +42,16 @@ def train(FLAGS):
     datamodule.prepare_data()
     datamodule.setup()
 
-    gen = Generator(block_activation=nn.SiLU,
-                    final_activation=nn.Sigmoid,
+    gen = Generator(block_activation=nn.ReLU,
+                    final_activation=nn.Tanh,
                     **FLAGS.experiment.generator_kwargs)
-    disc = Discriminator(block_activation=nn.SiLU,
+    disc = Discriminator(block_activation=nn.LeakyReLU,
                          final_activation=nn.Sigmoid,
                          **FLAGS.experiment.discriminator_kwargs)
     # initialize Task
     task = GAN(generator=gen,
                 discriminator=disc,
-                optimizer_kwargs=dict(lr=0.0001,beta1=0.999,beta2=0.999))
+                optimizer_kwargs=dict(lr=1e-4,beta1=0.5,beta2=0.9999, weight_decay=1e-3))
 
     # initialize trainer
     callbacks = get_default_callbacks(monitor=FLAGS.experiment.monitor)
@@ -65,7 +62,6 @@ def train(FLAGS):
 
     # run
     trainer.fit(task, datamodule)
-    trainer.logger.run.stop()
 
 
 @hydra.main(config_path, config_name="gan")

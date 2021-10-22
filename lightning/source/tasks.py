@@ -22,6 +22,7 @@ class GAN(LightningModule):
         self.discriminator = discriminator
         self.generator = generator
         self.optimizer_kwargs = optimizer_kwargs
+        self.fixed_noise = torch.randn(128, self.generator.latent_dim, 1, 1, device=self.device)
         self.save_hyperparameters()
 
     def configure_optimizers(self):
@@ -36,25 +37,34 @@ class GAN(LightningModule):
     def loss(self, output, label):
         return F.binary_cross_entropy(output, label)
 
+    def training_epoch_end(self, training_step_outputs):
+        sample_image = np.transpose(TorchVisionUtils.make_grid(self.generated_images.to('cpu')[:64],
+                                                               padding=2,
+                                                               normalize=True).cpu(), (1, 2, 0))
+
+        self.logger.experiment[f'images/gen-epoch{self.current_epoch}'].upload(File.as_image(sample_image))
+
+
     def training_step(self, batch, batch_idx, optimizer_idx):
         images = batch[0]
 
         # sample noise with shape (batchsize, latent_dim)
-        z = torch.randn(images.shape[0], self.generator.latent_dim, 1, 1)
+        z = torch.randn(images.shape[0], self.generator.latent_dim, 1, 1, device=self.device)
 
         # train generator
         if optimizer_idx == 0:
             # generate images
             self.generated_images = self.forward(z)
 
-            # log sampled images
-            sample_image = np.transpose(TorchVisionUtils.make_grid(self.generated_images[0].to('cpu')[:64],
-                                                            padding=2,
-                                                            normalize=True).cpu(), (1, 2, 0))
-            self.logger.experiment['images'].upload(File.as_image(sample_image))
+            if self.global_step % 50 == 0:
+                fixed_image = self.generator(self.fixed_noise.to(self.device))
+                fixed_image = np.transpose(TorchVisionUtils.make_grid(fixed_image[0].to('cpu')[:64],
+                                                                      padding=2,
+                                                                      normalize=True).cpu(), (1, 2, 0))
+                self.logger.experiment[f'images/fixed-step{self.global_step}'].upload(File.as_image(fixed_image))
 
             # ground truth result (ie: all fake_label)
-            true_label = torch.ones(images.size(0))
+            true_label = torch.ones(images.size(0), device=self.device)
 
             # adversarial loss is binary cross-entropy
             g_loss = self.loss(self.discriminator(self(z)).view(-1), true_label)
@@ -65,12 +75,12 @@ class GAN(LightningModule):
         # train discriminator
         if optimizer_idx == 1:
             # Measure discriminator's ability to classify real from generated samples
-            true_label = torch.ones(images.size(0))
+            true_label = torch.ones(images.size(0), device=self.device)
 
             real_loss = self.loss(self.discriminator(images).view(-1), true_label)
 
-            # Make fake_label label with size (batchsize, 1)
-            fake_label = torch.zeros(images.size(0))
+            # Make fake_dlabel label with size (batchsize, 1)
+            fake_label = torch.zeros(images.size(0), device=self.device)
 
             fake_loss = self.loss(
                 self.discriminator(self.forward(z).detach()).view(-1), fake_label)

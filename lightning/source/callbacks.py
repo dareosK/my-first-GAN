@@ -1,4 +1,5 @@
 from pytorch_lightning.callbacks.base import Callback
+import torch
 
 class WriteCheckpointLogs(Callback):
     """

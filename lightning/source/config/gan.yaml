@@ -6,8 +6,8 @@ neptune:
   tags: 'waifu-pilot'
   project: 'greggyfromtheblock/waif'
 trainer:
-  default_root_dir: "/Users/gregruyoga/G_Projects/results/waifu"
-  gpus: 0
+  default_root_dir: "/home/ruyogagp/gan_results/waifu/"
+  gpus: -1
   val_check_interval: 1.0
   fast_dev_run: False
   max_epochs: 50
@@ -18,11 +18,11 @@ experiment:
   task: GAN
   monitor: 'generator_loss'
   datamodule_kwargs:
-    folderpath: '/Users/gregruyoga/G_Projects/img_database/waifu'
-    batch_size: 256
+    folderpath: '/home/ruyogagp/gan/img_database/waifu'
+    batch_size: 128
     image_size: 64
   generator_kwargs:
-    latent_dim: 64
+    latent_dim: 100
     featuremap_dim: 64
     output_dim: 3
   discriminator_kwargs:

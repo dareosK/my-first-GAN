@@ -32,7 +32,7 @@ def set_up_neptune(FLAGS={}, close_after_fit=False, **kwargs):
     tags = FLAGS.neptune.tags if not isinstance(FLAGS.neptune.tags, (ListConfig,)) \
         else OmegaConf.to_container(FLAGS.neptune.tags, resolve=True)
 
-    neptune_logger = FoolProofNeptuneLogger(api_key=os.environ["NEPTUNE_API_TOKEN"],
+    neptune_logger = FoolProofNeptuneLogger(api_key=os.environ["WAIFU_TOKEN"],
                                             close_after_fit=close_after_fit,
                                             project=FLAGS.neptune.project,
                                             tags=tags)
